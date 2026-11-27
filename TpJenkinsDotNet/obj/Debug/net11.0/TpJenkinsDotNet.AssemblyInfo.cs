@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TpJenkinsDotNet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+669e0c0e4188756d2a231a9003e5e9fc72df5cea")]
 [assembly: System.Reflection.AssemblyProductAttribute("TpJenkinsDotNet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TpJenkinsDotNet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

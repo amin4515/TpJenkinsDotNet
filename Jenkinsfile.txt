@@ -1,0 +1,97 @@
+
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        IMAGE_NAME = 'amin03jwd/tp-jenkins-dotnet:latest'
+        SWARM_HOST = 'IP_DU_SWARM1'
+        SWARM_USER = 'Ubuntu'
+    }
+
+    stages {
+
+        // STAGE 1 : Recuperation du projet GitHub
+        stage('SCM Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // STAGE 2 : Compilation du projet .NET
+        stage('DotNet Clean Build') {
+            steps {
+                sh '''
+                    dotnet clean TpJenkinsDotNet/TpJenkinsDotNet.csproj
+                    dotnet restore TpJenkinsDotNet/TpJenkinsDotNet.csproj
+                    dotnet build TpJenkinsDotNet/TpJenkinsDotNet.csproj \
+                        --configuration Release --no-restore
+                '''
+            }
+        }
+
+        // STAGE 3 : Creation de l'image Docker
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME .'
+            }
+        }
+
+        // STAGE 4 : Envoi vers Docker Hub
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login \
+                            -u "$DOCKER_USER" --password-stdin
+
+                        docker push "$IMAGE_NAME"
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        // STAGE 5 : Deploiement sur Docker Swarm
+        stage('Deploy Docker Swarm') {
+            steps {
+                sshagent(credentials: ['swarm-ssh']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=accept-new \
+                            "$SWARM_USER@$SWARM_HOST" \
+                            "if docker service inspect tp-dotnet >/dev/null 2>&1; then
+                                docker service update --with-registry-auth \
+                                    --image $IMAGE_NAME tp-dotnet;
+                            else
+                                docker service create --with-registry-auth \
+                                    --name tp-dotnet \
+                                    --replicas 2 \
+                                    --publish 8080:8080 \
+                                    $IMAGE_NAME;
+                            fi"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline termine avec succes !'
+        }
+
+        failure {
+            echo 'Echec du Pipeline. Consulter Console Output.'
+        }
+    }
+}
