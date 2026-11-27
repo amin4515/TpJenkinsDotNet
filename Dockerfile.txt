@@ -1,0 +1,25 @@
+# Etape 1 : Build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+COPY TpJenkinsDotNet/TpJenkinsDotNet.csproj TpJenkinsDotNet/
+
+RUN dotnet restore TpJenkinsDotNet/TpJenkinsDotNet.csproj
+
+COPY . .
+
+RUN dotnet publish TpJenkinsDotNet/TpJenkinsDotNet.csproj \
+    -c Release \
+    -o /app/publish
+
+# Etape 2 : Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
+
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "TpJenkinsDotNet.dll"]
